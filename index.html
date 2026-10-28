@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Box Template Generator</title>
+<!-- Open source version of the ToolNestCalc calculator. Live demo: https://toolnestcalc.com/box-template-generator/ -->
+<style>
+body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#22333b;background:#f4f7f8;margin:0;padding:0 1rem}
+.wrap{max-width:900px;margin:0 auto;padding:1rem 0}
+.wrap a{color:#1e88e5}
+.wrap .box-tool{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:1.25rem;margin:2rem 0;font-size:1.02rem;line-height:1.55;align-items:start}
+.wrap .box-fields,.wrap .box-result{background:#ffffff;border:1px solid #dde3e6;border-radius:14px;box-shadow:0 2px 14px rgba(20,40,50,0.08);padding:1.25rem}
+.wrap .box-fields{display:flex;flex-direction:column;gap:0.6rem}
+.wrap .box-fields label{font-weight:700;text-align:left;color:#22333b}
+.wrap .box-fields input[type=number],.wrap .box-fields select{width:100%;padding:0.6rem 0.7rem;margin-top:0.3rem;border:1px solid #c8d2d6;border-radius:8px;font-size:1rem;background:#fff}
+.wrap .box-fields input[type=number]:focus,.wrap .box-fields select:focus{outline:none;border-color:#1e88e5;box-shadow:0 0 0 3px rgba(30,136,229,0.18)}
+.wrap .box-fields input[type=checkbox]{accent-color:#1e88e5;width:auto}
+.wrap .box-presets{display:flex;gap:0.45rem;flex-wrap:wrap;margin-top:0.3rem}
+.wrap .box-presets button{padding:0.45rem 1rem;cursor:pointer;border:1px solid #c8d2d6;border-radius:999px;background:#f4f7f8;color:#22333b;font-size:0.95rem;font-weight:600}
+.wrap .box-presets button:hover{border-color:#1e88e5;color:#1e88e5}
+.wrap .box-error{color:#b00020;min-height:1.2em;margin:0}
+.wrap .box-verdict{background:#f2f7f2;border:1px solid #cfe0cf;border-radius:10px;padding:0.9rem 1rem;margin-bottom:1rem;font-weight:600;color:#1c2b31}
+.wrap .box-svg-wrap{border:1px solid #dde3e6;border-radius:10px;padding:0.75rem;overflow:auto;background:#fff}
+.wrap .box-svg-wrap svg{width:100%;height:auto;display:block}
+.wrap .box-legend{font-size:0.92rem;color:#5a6b72}
+.wrap .swatch{display:inline-block;width:22px;height:0;border-top:2px solid #111;vertical-align:middle}
+.wrap .swatch.dashed{border-top-style:dashed}
+.wrap .box-result button{padding:0.7rem 1.3rem;cursor:pointer;border-radius:999px;font-size:1rem;font-weight:700;margin-right:0.5rem}
+.wrap #boxPrint{background:#1e88e5;border:1px solid #1e88e5;color:#fff}
+.wrap #boxPrint:hover{background:#1668b4}
+.wrap #boxSvgBtn{background:#fff;border:1px solid #1e88e5;color:#1e88e5}
+.wrap #boxSvgBtn:hover{background:#eaf3fc}
+.wrap .box-note{font-size:0.92rem;color:#5a6b72}
+@media(max-width:700px){.wrap .box-tool{grid-template-columns:minmax(0,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Free Box Template Generator</h1>
+<p class="lead">Make a custom printable box template in seconds. Enter the length, width and height of the box you want, preview the cut-and-fold net, then print it at true size or download the SVG.</p>
+
+<div class="box-tool">
+<div class="box-fields">
+<label>Units
+<select id="boxUnit">
+<option value="in" selected>Inches</option>
+<option value="cm">Centimetres</option>
+<option value="mm">Millimetres</option>
+</select>
+</label>
+<label>Length
+<input id="boxL" type="number" value="3" min="0.5" step="0.1">
+</label>
+<label>Width
+<input id="boxW" type="number" value="2.5" min="0.5" step="0.1">
+</label>
+<label>Height
+<input id="boxH" type="number" value="1.5" min="0.5" step="0.1">
+</label>
+<label>Glue tab width
+<input id="boxTab" type="number" value="0.55" min="0.2" step="0.05">
+</label>
+<label>Paper size
+<select id="boxPaper">
+<option value="letter" selected>US Letter (8.5 x 11 in)</option>
+<option value="a4">A4 (210 x 297 mm)</option>
+</select>
+</label>
+<label>Print scale
+<select id="boxScale">
+<option value="100" selected>100 percent (true size)</option>
+<option value="fit">Fit to page</option>
+</select>
+</label>
+<label><input id="boxLid" type="checkbox" checked> Include lid panel</label>
+<div class="box-presets">
+<button type="button" data-preset="3,2.5,1.5">Small gift</button>
+<button type="button" data-preset="2,2,2">Favour box</button>
+<button type="button" data-preset="6,4,3">Large gift</button>
+</div>
+<p id="boxError" class="box-error"></p>
+</div>
+
+<div class="box-result">
+<div id="boxVerdict" class="box-verdict"></div>
+<div class="box-svg-wrap">
+<svg id="boxSvg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Printable box template net"></svg>
+</div>
+<p class="box-legend"><span class="swatch solid"></span> Cut on solid lines <span class="swatch dashed"></span> Score and fold on dashed lines</p>
+<button type="button" id="boxPrint">Print template</button>
+<button type="button" id="boxSvgBtn">Download SVG</button>
+</div>
+</div>
+
+<h2>How to use this box template generator</h2>
+<ol>
+<li>Enter the finished size of the box you want: length, width and height. These are the finished box dimensions, so measure the gift or item the box must hold and add a little room.</li>
+<li>Choose whether to include the lid panel. With the lid on, you get a one-piece gift box: base, four walls and a lid that folds over the top. With the lid off, you get an open tray.</li>
+<li>Check the net size and the fits-on-page note. If the net is bigger than your paper, switch to fit to page and read the finished size it shows, or print at 100 percent on larger paper at a copy shop.</li>
+<li>Print, cut on the solid lines, score on the dashed lines, fold the walls up, glue the tabs inside, and tuck the lid closed.</li>
+</ol>
+
+<h2>Reading the net</h2>
+<p>Every box template this generator draws is a cross net: the base sits in the middle, one wall folds up from each of its four edges, and the lid hangs off the bottom wall. The two trapezoidal tabs on the side walls fold inward and glue to the neighbouring walls. The full net for a box of length L, width W and height H measures L plus twice H across, and twice W plus twice H tall, before the glue tabs. That is why even a modest box can outgrow one sheet of paper: a 100 by 80 by 60 mm box already needs a 220 by 280 mm net.</p>
+
+<h2>Paper, scale and the fits-on-page note</h2>
+<p>For small boxes, ordinary printer paper works. For anything you want to hold its shape, use card stock around 180 to 300 gsm. The fits-on-page note compares the net against the printable area of your chosen <a href="https://en.wikipedia.org/wiki/Paper_size">paper size</a>, allowing for printer margins. If you print at 100 percent, the box comes out at exactly the size you entered. If you use fit to page, the tool shows the scale percentage and the finished box size at that scale, so the smaller box is never a surprise.</p>
+<p>Printer drivers often shrink pages on their own when fit to page is selected, so set your printer to 100 percent or Actual size and check the scale line printed below the net: it must measure exactly 1 inch or 25 mm. If it does not, your print settings shrank the template.</p>
+<p>Glue tab width defaults to about 14 mm, following the common paperboard convention of around 12.7 mm. You can widen it for thick card or narrow it for small boxes. Thin card needs no thickness allowance, which is why this box template generator works in finished box size rather than inside size.</p>
+
+<h2>Assembly order</h2>
+<ol>
+<li>Cut around the solid outline, including the glue tabs.</li>
+<li>Score every dashed line with a blunt edge or an empty pen before folding, so the card folds cleanly.</li>
+<li>Fold the four walls up around the base.</li>
+<li>Fold the glue tabs inward and glue them to the inside of the neighbouring walls. Hold each tab until the glue grabs.</li>
+<li>Fold the lid over the top and tuck it inside the walls.</li>
+</ol>
+
+<h2>Frequently asked questions</h2>
+<h3>Why is my box template bigger than the page?</h3>
+<p>A box net is always much larger than the finished box, because it lays every panel flat. The fits-on-page note tells you straight away. Your options are a smaller box, fit to page at the stated scale, or printing at 100 percent on A3 at a copy shop.</p>
+<h3>What paper should I use for a printable box template?</h3>
+<p>Card stock around 180 to 300 gsm gives a sturdy gift box. Lighter paper is fine for small favour boxes and practice runs, but it will not hold heavier gifts.</p>
+<h3>Are the sizes inside or outside dimensions?</h3>
+<p>They are the finished box size. For thin card the difference is negligible. If you are boxing an exact item, add a few millimetres of clearance to each dimension.</p>
+<h3>Can this box template generator make a tuck-end carton?</h3>
+<p>Not in this version. This generator makes the one-piece glued gift box with an optional lid, which is the most common printable box template. Tuck-end cartons and two-piece lift-off lids use different nets.</p>
+<h3>How do I know the print came out at the right scale?</h3>
+<p>Measure the scale line printed below the net. It must read exactly 1 inch or 25 mm. If it is smaller, your printer shrank the page: reprint with the scale set to 100 percent or Actual size.</p>
+
+<p class="box-note">Scope note: this page covers the one-piece paper and card gift box net only. Laser-cut finger-joint boxes use different geometry and are not covered here.</p>
+<p>See also: <a href="https://toolnestcalc.com/free-online-calculators-tools/">Free Online Calculators and Tools</a> and <a href="https://toolnestcalc.com/name-tracing-worksheets/">Name Tracing Worksheets</a>.</p>
+</div>
+<script>
+// BOX-START
+function boxToMm(v, unit) {
+  if (unit === 'in') { return v * 25.4; }
+  if (unit === 'cm') { return v * 10; }
+  return v;
+}
+function boxFromMm(mm, unit) {
+  if (unit === 'in') { return mm / 25.4; }
+  if (unit === 'cm') { return mm / 10; }
+  return mm;
+}
+function boxFmt(mm, unit) {
+  var v = boxFromMm(mm, unit);
+  if (unit === 'in') { return v.toFixed(2) + ' in'; }
+  if (unit === 'cm') { return v.toFixed(1) + ' cm'; }
+  return Math.round(v) + ' mm';
+}
+function computeNet(L, W, H, tab, lidOn) {
+  var netW = L + 2 * H + 2 * tab;
+  var netH = 2 * H + W;
+  if (lidOn) { netH = netH + W; }
+  var b = Math.min(tab * 0.5, W * 0.25);
+  var x = tab + H;
+  var panels = [
+    { id: 'top', x: x, y: 0, w: L, h: H },
+    { id: 'base', x: x, y: H, w: L, h: W },
+    { id: 'bottom', x: x, y: H + W, w: L, h: H }
+  ];
+  if (lidOn) { panels.push({ id: 'lid', x: x, y: 2 * H + W, w: L, h: W }); }
+  panels.push({ id: 'left', x: tab, y: H, w: H, h: W });
+  panels.push({ id: 'right', x: tab + H + L, y: H, w: H, h: W });
+  var tabs = [
+    { pts: [[tab, H], [0, H + b], [0, H + W - b], [tab, H + W]] },
+    { pts: [[netW - tab, H], [netW, H + b], [netW, H + W - b], [netW - tab, H + W]] }
+  ];
+  var outline = [[x, 0], [x + L, 0], [x + L, H], [netW - tab, H], [netW, H + b], [netW, H + W - b], [netW - tab, H + W], [x + L, H + W]];
+  if (lidOn) {
+    outline.push([x + L, netH]);
+    outline.push([x, netH]);
+    outline.push([x, H + W]);
+  } else {
+    outline.push([x + L, 2 * H + W]);
+    outline.push([x, 2 * H + W]);
+    outline.push([x, H + W]);
+  }
+  outline.push([tab, H + W]);
+  outline.push([0, H + W - b]);
+  outline.push([0, H + b]);
+  outline.push([tab, H]);
+  outline.push([x, H]);
+  var folds = [
+    [[x, H], [x + L, H]],
+    [[x, H + W], [x + L, H + W]],
+    [[x, H], [x, H + W]],
+    [[x + L, H], [x + L, H + W]]
+  ];
+  if (lidOn) { folds.push([[x, 2 * H + W], [x + L, 2 * H + W]]); }
+  return { netW: netW, netH: netH, panels: panels, tabs: tabs, outline: outline, folds: folds };
+}
+function fitInfo(netW, netH, paper) {
+  var p;
+  if (paper === 'a4') { p = { mw: 186, mh: 273 }; }
+  else { p = { mw: 190.5, mh: 254 }; }
+  var sDirect = Math.min(p.mw / netW, p.mh / netH);
+  var sRot = Math.min(p.mw / netH, p.mh / netW);
+  var rotated = false;
+  if (sRot > sDirect) { rotated = true; }
+  var s = sDirect;
+  if (rotated) { s = sRot; }
+  return { scale: s, fits: s >= 1, rotated: rotated };
+}
+if (typeof module !== 'undefined') {
+  module.exports = { boxToMm: boxToMm, boxFromMm: boxFromMm, computeNet: computeNet, fitInfo: fitInfo };
+}
+// BOX-END
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  function ptsToStr(pts) {
+    var out = [];
+    var i;
+    for (i = 0; i < pts.length; i++) { out.push(pts[i][0].toFixed(2) + ',' + pts[i][1].toFixed(2)); }
+    return out.join(' ');
+  }
+  function render() {
+    var unit = $('boxUnit').value;
+    var L = parseFloat($('boxL').value);
+    var W = parseFloat($('boxW').value);
+    var H = parseFloat($('boxH').value);
+    var tabRaw = parseFloat($('boxTab').value);
+    var err = $('boxError');
+    var verdict = $('boxVerdict');
+    err.textContent = '';
+    if (isNaN(L) || isNaN(W) || isNaN(H) || isNaN(tabRaw) || L <= 0 || W <= 0 || H <= 0 || tabRaw <= 0) {
+      verdict.textContent = '';
+      $('boxSvg').innerHTML = '';
+      err.textContent = 'Enter a positive number for length, width, height and glue tab width.';
+      return;
+    }
+    var Lmm = boxToMm(L, unit);
+    var Wmm = boxToMm(W, unit);
+    var Hmm = boxToMm(H, unit);
+    var tabMm = boxToMm(tabRaw, unit);
+    if (tabMm > Hmm) {
+      verdict.textContent = '';
+      $('boxSvg').innerHTML = '';
+      err.textContent = 'Glue tab width must not exceed the box height.';
+      return;
+    }
+    var lidOn = $('boxLid').checked;
+    var net = computeNet(Lmm, Wmm, Hmm, tabMm, lidOn);
+    var paper = $('boxPaper').value;
+    var fit = fitInfo(net.netW, net.netH, paper);
+    var mode = $('boxScale').value;
+    var scale = 1;
+    if (mode === 'fit') {
+      scale = fit.scale;
+      if (scale > 1) { scale = 1; }
+    }
+    var finL = boxFmt(Lmm * scale, unit);
+    var finW = boxFmt(Wmm * scale, unit);
+    var finH = boxFmt(Hmm * scale, unit);
+    var paperName = 'US Letter';
+    if (paper === 'a4') { paperName = 'A4'; }
+    var lines = [];
+    lines.push('Net size: ' + boxFmt(net.netW, unit) + ' x ' + boxFmt(net.netH, unit) + '.');
+    if (mode === '100') {
+      if (fit.fits) {
+        lines.push('Fits on ' + paperName + ' at 100 percent.');
+      } else {
+        lines.push('Does not fit on ' + paperName + ' at 100 percent. Switch to fit to page, or print on larger paper.');
+      }
+    } else {
+      lines.push('Fit to page scale: ' + Math.round(scale * 100) + ' percent. Finished box: ' + finL + ' x ' + finW + ' x ' + finH + '.');
+    }
+    if (fit.rotated) { lines.push('Tip: rotate the page to landscape for the best fit.'); }
+    verdict.textContent = lines.join(' ');
+    var checkY = net.netH + 14;
+    var vbH = net.netH + 24;
+    var svg = '';
+    svg += '<rect x="0" y="0" width="' + net.netW.toFixed(2) + '" height="' + net.netH.toFixed(2) + '" fill="none" stroke="none" />';
+    var i;
+    for (i = 0; i < net.tabs.length; i++) {
+      svg += '<polygon points="' + ptsToStr(net.tabs[i].pts) + '" fill="#eef3ee" stroke="#111" stroke-width="0.6" />';
+    }
+    for (i = 0; i < net.panels.length; i++) {
+      var p = net.panels[i];
+      svg += '<rect x="' + p.x.toFixed(2) + '" y="' + p.y.toFixed(2) + '" width="' + p.w.toFixed(2) + '" height="' + p.h.toFixed(2) + '" fill="#ffffff" stroke="none" />';
+    }
+    svg += '<polygon points="' + ptsToStr(net.outline) + '" fill="none" stroke="#111" stroke-width="0.8" />';
+    for (i = 0; i < net.folds.length; i++) {
+      var f = net.folds[i];
+      svg += '<line x1="' + f[0][0].toFixed(2) + '" y1="' + f[0][1].toFixed(2) + '" x2="' + f[1][0].toFixed(2) + '" y2="' + f[1][1].toFixed(2) + '" stroke="#111" stroke-width="0.6" stroke-dasharray="4,3" />';
+    }
+    var cx = (tabMm + Hmm + Lmm / 2).toFixed(2);
+    var cyBase = (Hmm + Wmm / 2).toFixed(2);
+    svg += '<text x="' + cx + '" y="' + cyBase + '" text-anchor="middle" font-size="5" fill="#333">Base ' + boxFmt(Lmm, unit) + ' x ' + boxFmt(Wmm, unit) + '</text>';
+    svg += '<text x="' + cx + '" y="' + (Hmm / 2).toFixed(2) + '" text-anchor="middle" font-size="5" fill="#333">Wall</text>';
+    if (lidOn) {
+      svg += '<text x="' + cx + '" y="' + (2 * Hmm + Wmm + Wmm / 2).toFixed(2) + '" text-anchor="middle" font-size="5" fill="#333">Lid</text>';
+    }
+    svg += '<line x1="' + tabMm.toFixed(2) + '" y1="' + checkY.toFixed(2) + '" x2="' + (tabMm + 25.4).toFixed(2) + '" y2="' + checkY.toFixed(2) + '" stroke="#111" stroke-width="0.6" />';
+    svg += '<text x="' + tabMm.toFixed(2) + '" y="' + (checkY + 7).toFixed(2) + '" font-size="4.5" fill="#333">Scale check: this line must measure 1 inch / 25 mm</text>';
+    var el = $('boxSvg');
+    el.setAttribute('viewBox', '0 0 ' + net.netW.toFixed(2) + ' ' + vbH.toFixed(2));
+    el.innerHTML = svg;
+    el.dataset.netW = net.netW;
+    el.dataset.netH = vbH;
+    el.dataset.scale = scale;
+  }
+  var ids = ['boxUnit', 'boxL', 'boxW', 'boxH', 'boxTab', 'boxPaper', 'boxScale', 'boxLid'];
+  var j;
+  for (j = 0; j < ids.length; j++) {
+    $(ids[j]).addEventListener('input', render);
+    $(ids[j]).addEventListener('change', render);
+  }
+  var presets = document.querySelectorAll('.box-presets button');
+  var k;
+  for (k = 0; k < presets.length; k++) {
+    presets[k].addEventListener('click', function () {
+      var parts = this.getAttribute('data-preset').split(',');
+      $('boxL').value = parts[0];
+      $('boxW').value = parts[1];
+      $('boxH').value = parts[2];
+      render();
+    });
+  }
+  $('boxPrint').addEventListener('click', function () {
+    var el = $('boxSvg');
+    var scale = parseFloat(el.dataset.scale || '1');
+    var wmm = parseFloat(el.dataset.netW || '0') * scale;
+    var hmm = parseFloat(el.dataset.netH || '0') * scale;
+    var win = window.open('', '_blank');
+    win.document.write('<html><head><title>Box template</title><style>@page{margin:10mm}body{margin:0}svg{width:' + wmm.toFixed(1) + 'mm;height:' + hmm.toFixed(1) + 'mm}</style></head><body>' + el.outerHTML + '<p>Print at 100 percent (Actual size), not fit to page. Measure the scale line: it must read 1 inch / 25 mm.</p></body></html>');
+    win.document.close();
+    win.focus();
+    win.print();
+  });
+  $('boxSvgBtn').addEventListener('click', function () {
+    var el = $('boxSvg').cloneNode(true);
+    el.setAttribute('width', parseFloat($('boxSvg').dataset.netW || '0').toFixed(1) + 'mm');
+    el.setAttribute('height', parseFloat($('boxSvg').dataset.netH || '0').toFixed(1) + 'mm');
+    var src = new XMLSerializer().serializeToString(el);
+    var blob = new Blob([src], { type: 'image/svg+xml' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'box-template.svg';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+  render();
+})();
+</script>
+</body>
+</html>
